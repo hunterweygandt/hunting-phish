@@ -1,0 +1,12 @@
+From: "Security Team" <alert@mail-secure-login.com>
+Return-Path: <alert@mail-secure-login.com>
+To: <hunter@example.com>
+Subject: Suspicious login attempt detected
+Date: Mon, 29 Jun 2026 12:00:00 -0600
+Authentication-Results: mx.example.com; spf=softfail; dkim=none; dmarc=fail
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+We blocked a login. Confirm it was you:
+http://203.0.113.44/reset.php

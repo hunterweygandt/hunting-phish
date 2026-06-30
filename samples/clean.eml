@@ -1,0 +1,50 @@
+Return-Path: <helpdesk@acmecorp.com>
+Authentication-Results: mx.acmecorp.com;
+	spf=pass (sender IP is 198.51.100.20) smtp.mailfrom=acmecorp.com;
+	dkim=pass header.d=acmecorp.com;
+	dmarc=pass (p=none) header.from=acmecorp.com
+Received: from mail.acmecorp.com (mail.acmecorp.com [198.51.100.20])
+	by mx.acmecorp.com with ESMTP id XYZ789
+	for <hunter@acmecorp.com>; Mon, 29 Jun 2026 09:02:10 -0600
+From: "IT Help Desk" <helpdesk@acmecorp.com>
+To: <hunter@acmecorp.com>
+Subject: Your account password was updated today
+Date: Mon, 29 Jun 2026 09:02:09 -0600
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="boundary99"
+
+--boundary99
+Content-Type: text/plain; charset="utf-8"
+
+Hi team,
+
+This is a routine notice from the IT Help Desk. Earlier today we rolled
+out a scheduled password update across the company. Your account is fully
+active and no action is needed on your part.
+
+Over the next few hours you may notice a brief sign-in prompt as your
+devices refresh. If your screen is already unlocked you can simply keep
+working. The new self-service portal also gives you unlimited password
+resets without having to call us.
+
+If you have any questions, reply anytime during normal business hours.
+
+Thanks,
+IT Help Desk
+ACME Corp
+
+--boundary99
+Content-Type: text/html; charset="utf-8"
+
+<html><body>
+<p>Hi team,</p>
+<p>This is a routine notice from the IT Help Desk. Earlier <b>today</b> we
+rolled out a scheduled password update. Your <b>account</b> is fully active
+and no action is needed.</p>
+<p>Over the next few <b>hours</b> you may see a brief sign-in prompt. If your
+screen is already unlocked you can keep working. The portal gives you
+unlimited resets.</p>
+<p>Questions? Reply during business hours. Visit https://portal.acmecorp.com/help</p>
+</body></html>
+
+--boundary99--

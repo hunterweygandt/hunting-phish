@@ -1,0 +1,11 @@
+# --- secrets: never commit real API keys ---
+config.ini
+
+# --- python environment & cache ---
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# --- macOS cruft ---
+.DS_Store

@@ -1,0 +1,42 @@
+Return-Path: <bounce@mailer-track9.ru>
+Authentication-Results: mx.example.com;
+	spf=fail (sender IP is 203.0.113.44) smtp.mailfrom=mailer-track9.ru;
+	dkim=fail header.d=mailer-track9.ru;
+	dmarc=fail (p=reject) header.from=secure-paypaI.com
+Received: from mailer-track9.ru (unknown [203.0.113.44])
+	by mx.example.com with ESMTP id ABC123
+	for <victim@example.com>; Mon, 29 Jun 2026 08:14:22 -0600
+From: "PayPal Security" <service@secure-paypaI.com>
+Reply-To: <recover@account-verify-helpdesk.com>
+To: <victim@example.com>
+Subject: Your account has been limited - action required
+Date: Mon, 29 Jun 2026 08:14:21 -0600
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="boundary42"
+
+--boundary42
+Content-Type: text/plain; charset="utf-8"
+
+Dear Customer,
+
+We detected unusual activity on your account. Your access has been
+limited until you verify your identity.
+
+Verify now: https://secure-paypaI.com.account-verify-helpdesk.com/login
+
+If you do not verify within 24 hours your account will be suspended.
+
+PayPal Security Team
+
+--boundary42
+Content-Type: text/html; charset="utf-8"
+
+<html><body>
+<p>Dear Customer,</p>
+<p>We detected unusual activity on your account.</p>
+<p><a href="https://secure-paypaI.com.account-verify-helpdesk.com/login">
+Verify your account now</a></p>
+<p>You can also reset at http://203.0.113.44/reset.php</p>
+</body></html>
+
+--boundary42--

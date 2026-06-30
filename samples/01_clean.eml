@@ -1,0 +1,32 @@
+From: "IT Help Desk" <helpdesk@acmecorp.com>
+Return-Path: <helpdesk@acmecorp.com>
+To: <hunter@acmecorp.com>
+Subject: Your account password was updated today
+Date: Mon, 29 Jun 2026 09:02:09 -0600
+Authentication-Results: mx.acmecorp.com; spf=pass; dkim=pass; dmarc=pass
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============7444118723213561227=="
+
+--===============7444118723213561227==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hi team,
+
+Routine notice. Earlier today we updated passwords. Your account is fine and =
+no action is needed. Over the next few hours you may see a sign-in prompt; if=
+ your screen is unlocked just keep working. The portal gives unlimited resets.
+
+Visit https://portal.acmecorp.com/help with questions.
+
+IT
+
+--===============7444118723213561227==
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="notes.txt"
+MIME-Version: 1.0
+
+TWVldGluZyBub3RlczogUTMgcGxhbm5pbmcuIE5vdGhpbmcgZXhjaXRpbmcgaGVyZS4=
+
+--===============7444118723213561227==--

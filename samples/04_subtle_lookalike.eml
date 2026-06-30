@@ -1,0 +1,12 @@
+From: "Billing" <noreply@netflix-billing-update.com>
+Return-Path: <noreply@netflix-billing-update.com>
+To: <hunter@example.com>
+Subject: Final notice: update your payment to avoid suspension
+Date: Mon, 29 Jun 2026 11:00:00 -0600
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Your payment failed. Update now:
+https://netflix-billing-update.com/account/verify

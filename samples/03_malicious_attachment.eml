@@ -1,0 +1,33 @@
+From: "Accounts Payable" <billing@invoices-secure.com>
+Return-Path: <bounce@mailer7.ru>
+To: <hunter@example.com>
+Subject: Outstanding invoice - please review immediately
+Date: Mon, 29 Jun 2026 10:00:00 -0600
+Authentication-Results: mx.example.com; spf=fail; dkim=fail; dmarc=fail
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============7186478833520894484=="
+
+--===============7186478833520894484==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Please see attached invoice and remit payment.
+https://invoices-secure.com.pay-now-helpdesk.com/login
+
+--===============7186478833520894484==
+Content-Type: application/octet-stream
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="invoice.pdf.exe"
+MIME-Version: 1.0
+
+TVqQAANmYWtlIFBFIHBheWxvYWQgYnl0ZXMgaGVyZQ==
+
+--===============7186478833520894484==
+Content-Type: application/pdf
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="statement.pdf"
+MIME-Version: 1.0
+
+TVqQAANhbm90aGVyIGZha2UgZXhlIHdlYXJpbmcgYSBwZGYgbmFtZQ==
+
+--===============7186478833520894484==--
