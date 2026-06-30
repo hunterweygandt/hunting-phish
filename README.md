@@ -175,3 +175,5 @@ being honest about:
 
 For educational and authorized analysis use only. Always analyze live malicious
 samples in an isolated environment, never on a primary workstation.
+
+Sample emails included in this repository are synthetic and generated for testing/demo purposes only.
