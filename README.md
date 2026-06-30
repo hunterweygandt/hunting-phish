@@ -128,7 +128,7 @@ python analyzer.py samples/example.eml
 Run against the included test set to see the range of verdicts:
 
 ```bash
-for f in samples/testset/*.eml; do echo "=== $f ==="; python analyzer.py "$f"; done
+for f in samples/*.eml; do echo "=== $f ==="; python analyzer.py "$f"; done
 ```
 
 ## Scoring model
