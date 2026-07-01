@@ -1,13 +1,11 @@
 # Hunting Phish
 
-!!PROJECT IS IN PROGRESS!!
-!!IF YOU'D LIKE TO SEE ANYTHING ADDED PLEASE REACH OUT TO ME!!
-
 A command-line phishing triage tool that takes a raw `.eml` file, runs it through
-layered analysis — sender authentication, URL and IP reputation, attachment
-inspection — and produces a weighted risk score with a defensible verdict.
+layered analysis — sender authentication, sender impersonation, URL and IP
+reputation, attachment inspection — and produces a weighted risk score with a
+defensible verdict.
 
-Build from scratch in Python as a hands-on SOC project. The
+Built from scratch in Python as a hands-on SOC/detection-engineering project. The
 design goal throughout: never just *count* indicators, but *weigh* them, so that a
 loud-but-harmless message and a quiet-but-dangerous one are ranked on real risk
 rather than on how many boxes they tick.
@@ -16,75 +14,87 @@ rather than on how many boxes they tick.
 ============================================================
  Hunting Phish
 ============================================================
-
-[ SENDER ]
-  From:        "PayPal Security" <service@secure-paypaI.com>
-  Return-Path: <bounce@mailer-track9.ru>
-  ...
-[ VERDICT ]  LIKELY PHISHING  (risk score 8)
-  +2  from_returnpath_mismatch
+...
+[ VERDICT ]  LIKELY PHISHING  (risk score 10)
+  +3  trusted_host_abuse
+  +3  lookalike_domain
   +2  dmarc_fail
-  +1  replyto_mismatch
-  +1  spf_fail
-  +1  dkim_fail
   +1  urgency
+  +1  spf_fail
 ============================================================
 ```
 
 ## What it checks
 
-**Headers & authentication** — parses the `Authentication-Results` header for
-SPF/DKIM/DMARC verdicts, compares the visible `From` domain against the envelope
-`Return-Path` and `Reply-To`, and flags pressure/urgency language in the subject
-using whole-word matching.
+**Headers & authentication** — parses `Authentication-Results` for SPF/DKIM/DMARC
+verdicts, compares the visible `From` domain against the envelope `Return-Path`
+and `Reply-To`, and flags urgency/pressure language in the subject.
 
-**URLs** — extracts every link from the body (plain-text and HTML parts),
-deduplicates, and defangs them for safe display. Pulls the registered domain via
-the public suffix list, and detects links that point at a raw IP instead of a
-domain.
+**Sender impersonation (three complementary layers)** — catches spoofed senders
+that authentication alone misses:
+- *Homoglyphs* — display names built from lookalike Unicode (e.g. mathematical-bold
+  characters imitating normal letters), detected via Unicode normalization.
+- *Lookalike brand domains* — a curated list of commonly-abused brands, with
+  confusable-character folding so `secure-paypaI.com` (capital-I posing as `l`)
+  is caught.
+- *Display-name / domain mismatch* — generalizes **beyond** the brand list: if a
+  display name claims to be an organization ("Contoso Payroll") that the sending
+  domain doesn't support, it's flagged — for any org, not just listed ones.
 
-**Reputation enrichment** — looks each indicator up against external threat intel:
-domain and file reputation via VirusTotal, IP reputation via AbuseIPDB, live
-behavioral scanning via URLScan.io (which actually visits the page), and domain
-registration age via WHOIS (a domain registered days ago is a strong signal).
+**URLs** — extracts every link (plain-text and HTML), deduplicates, and defangs
+them. Pulls the registered domain, detects raw-IP hosts, and **extracts URLs
+hidden inside redirect parameters** (`continueUrl=`, `url=`, `redirect=`) so a
+payload buried in a query string is surfaced and analyzed like any other link.
 
-**Attachments** — extracts attachments, computes their SHA256, and identifies the
-*real* file type from magic bytes rather than trusting the filename. Flags
-high-risk extensions, double extensions (`invoice.pdf.exe`), and type mismatches
-(a file named `.pdf` whose bytes say it's an executable). Hashes are sent to
-VirusTotal; the file itself never leaves the machine.
+**Trusted-host abuse** — detects links hosted on legitimate services phishers
+abuse *because* the domain is trusted and clean (`storage.googleapis.com`,
+`*.firebaseapp.com`, S3, Azure Blob, etc.). Because plenty of real mail links to
+these, it's scored only when the email is *already* showing another sign — a
+balanced rule that avoids false-flagging every Google Drive link.
 
-**Scoring** — every check emits a structured signal. A weighted model sums the
-signals that fired and renders a verdict (`LOOKS CLEAN` / `SUSPICIOUS` /
-`LIKELY PHISHING`), showing each contributing signal and its weight so the verdict
-is fully explainable.
+**Reputation enrichment** — domain and file reputation via VirusTotal, IP
+reputation via AbuseIPDB, live behavioral scanning via URLScan.io, and domain
+registration age via WHOIS. Each degrades gracefully if its API key is absent.
+
+**Attachments** — extracts attachments, computes SHA256, and identifies the *real*
+file type from magic bytes rather than the filename. Flags high-risk extensions,
+double extensions (`invoice.pdf.exe`), and type mismatches (a `.pdf` whose bytes
+say it's an executable). Only the hash is sent to VirusTotal; the file never leaves
+the machine.
+
+**Scoring** — every check emits a structured signal. A single `assemble_signals`
+step combines them, a weighted model sums the ones that fired, and the tool renders
+a verdict (`LOOKS CLEAN` / `SUSPICIOUS` / `LIKELY PHISHING`) that shows each
+contributing signal and its weight — fully explainable, never a black box.
 
 ## How it works
-
-The tool is organized as a small package where each module owns one
-responsibility, and a single entry point composes them:
 
 ```
 hunting-phish/
 ├── analyzer.py            # entry point: runs the pipeline, prints the report
 ├── parsers/
-│   ├── headers.py         # sender + SPF/DKIM/DMARC + urgency analysis
-│   ├── urls.py            # URL extraction, defanging, domain/IP parsing
+│   ├── headers.py         # sender, auth, urgency, impersonation signals
+│   ├── urls.py            # URL + nested-URL extraction, defanging, domain/IP
+│   ├── lookalike.py       # homoglyph + brand + name/domain-mismatch detection
+│   ├── hosting.py         # trusted-host abuse detection
 │   ├── attachments.py     # hashing, magic-byte typing, extension checks
-│   ├── enrich.py          # all external API lookups (VT, AbuseIPDB, URLScan, WHOIS)
-│   ├── score.py           # the weighted verdict model
+│   ├── enrich.py          # external API lookups (VT, AbuseIPDB, URLScan, WHOIS)
+│   ├── score.py           # signal assembly + weighted verdict model
 │   ├── config.py          # loads API keys from config.ini
 │   └── tld.py             # shared offline public-suffix extractor
+├── tests/                 # pytest suite (scoring + end-to-end sample tests)
+├── make_samples.py        # regenerates the synthetic test emails
 ├── config.example.ini     # template (committed); copy to config.ini
-└── requirements.txt
+├── requirements.txt       # runtime dependencies
+└── requirements-dev.txt   # + pytest, for running the test suite
 ```
 
-Two design choices worth calling out. First, every external lookup degrades
-gracefully: a missing API key or a failed request returns a clean `None` and the
-report notes the skip rather than crashing, so the tool always produces a verdict
-from whatever signals are available. Second, secrets are never in source — keys
-load from a git-ignored `config.ini`, with a blank `config.example.ini` committed
-so the format is documented without exposing anything.
+Two design principles run through it. **Single source of truth:** signal assembly
+lives in one `assemble_signals` function that both the tool and the tests call, so
+they can never disagree about a score; likewise config, the TLD extractor, and
+URL dedup each have one home. **Graceful degradation:** any missing API key or
+failed lookup returns a clean `None` and is noted, so the tool always produces a
+verdict from whatever signals are available.
 
 ## Setup
 
@@ -95,29 +105,19 @@ git clone https://github.com/hunterweygandt/hunting-phish.git
 cd hunting-phish
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt          # runtime
+pip install -r requirements-dev.txt      # + test tooling (optional)
 ```
 
 ## Configuration
-
-Copy the example config and add your API keys:
 
 ```bash
 cp config.example.ini config.ini
 ```
 
-Then edit `config.ini`:
-
-```ini
-[api_keys]
-virustotal = your_key_here
-abuseipdb  = your_key_here
-urlscan    = your_key_here
-```
-
-All three are free-tier keys. `config.ini` is git-ignored and will never be
-committed. Any key left blank simply disables that lookup — the tool still runs
-and scores on the remaining signals.
+Add your free-tier API keys to `config.ini` (VirusTotal, AbuseIPDB, URLScan).
+`config.ini` is git-ignored and never committed; any key left blank simply disables
+that lookup.
 
 ## Usage
 
@@ -125,17 +125,27 @@ and scores on the remaining signals.
 python analyzer.py samples/example.eml
 ```
 
-Run against the included test set to see the range of verdicts:
+Regenerate the synthetic test emails, then run the whole set:
 
 ```bash
+python make_samples.py
 for f in samples/*.eml; do echo "=== $f ==="; python analyzer.py "$f"; done
 ```
 
+## Testing
+
+```bash
+pytest
+```
+
+The suite covers the scoring model in isolation and whole emails end-to-end. Test
+emails are synthetic (generated by `make_samples.py`) and safe to commit; real
+samples belong in the git-ignored `samples/testset/` folder.
+
 ## Scoring model
 
-Each signal carries a weight reflecting how strongly it indicates phishing. The
-weights and verdict thresholds live in `score.py` and are tuned by hand — they are
-the analyst judgment, not a fixed truth.
+Weights and thresholds live in `score.py` and are tuned by hand — analyst judgment,
+not fixed truth.
 
 | Signal | Weight |
 |---|---|
@@ -145,35 +155,33 @@ the analyst judgment, not a fixed truth.
 | URL flagged malicious by URLScan | 4 |
 | New domain (registered recently) | 3 |
 | IP reported for abuse (AbuseIPDB) | 3 |
-| From / Return-Path domain mismatch | 2 |
-| DMARC fail | 2 |
+| Homoglyph sender / lookalike brand domain | 3 each |
+| Trusted-host abuse (with another signal present) | 3 |
+| From / Return-Path mismatch, DMARC fail | 2 each |
+| Display-name / domain mismatch | 2 |
 | Reply-To mismatch, SPF fail, DKIM fail, urgency | 1 each |
 
 Verdict: **≥6** → LIKELY PHISHING, **≥3** → SUSPICIOUS, otherwise LOOKS CLEAN.
 
 ## Known limitations & roadmap
 
-This tool was tested against live phishing samples, which surfaced real gaps worth
-being honest about:
+Tested against live phishing, which surfaced real gaps — some now closed, some still open:
 
-- **Trusted-host abuse.** Attackers increasingly host payloads on legitimate
-  infrastructure (`storage.googleapis.com`, `*.firebaseapp.com`). Because the
-  registered domain is Google's — old and clean — domain-age and reputation checks
-  pass. Planned: detect known-abused hosting and shift scrutiny to the path/bucket.
-- **Authentication is necessary, not sufficient.** A passing SPF/DKIM only proves
-  the mail genuinely came from the sending domain — attackers authenticate their
-  own throwaway domains correctly. Planned: weight sender-domain age and lookalike
-  detection more heavily when auth passes but the domain is freshly registered.
-- **Header parsing robustness.** Real-world mail contains malformed and folded
-  headers that can confuse naive parsing. Planned: harden the parser against
-  these edge cases.
-- **Lookalike / homoglyph senders.** Unicode-spoofed display names and
-  near-miss domains aren't yet scored. Planned: homoglyph normalization and
-  edit-distance comparison against common brands.
+- **Cross-script homoglyphs.** Unicode normalization catches math/fullwidth tricks
+  but not Cyrillic/Greek lookalike letters (a Cyrillic `а` that looks Latin).
+  Planned: confusable-script detection.
+- **Auth as necessary-not-sufficient.** Passing SPF/DKIM only proves the mail came
+  from the sending domain. Domain age is scored, but tighter interaction between
+  "authenticated" and "freshly registered" is planned.
+- **Header-parsing robustness.** Malformed/folded headers in real mail can confuse
+  naive parsing. Planned: harden the parser.
+- **Enrichment coverage in tests.** The test suite exercises all local signals but
+  mocks out live API calls; adding response mocking for VT/AbuseIPDB/URLScan is a
+  planned improvement.
 
 ## Disclaimer
 
-For educational and authorized analysis use only. Always analyze live malicious
-samples in an isolated environment, never on a primary workstation.
+For educational and authorized analysis only. Always analyze live malicious samples
+in an isolated environment, never on a primary workstation.
 
 Sample emails included in this repository are synthetic and generated for testing/demo purposes only.

@@ -1,0 +1,11 @@
+From: "Design Team" <team@acmecorp.com>
+Return-Path: <team@acmecorp.com>
+To: <recipient@example.com>
+Subject: Here are the mockups from our meeting
+Date: Mon, 29 Jun 2026 09:00:00 -0600
+Authentication-Results: mx.acmecorp.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+The files are here: https://storage.googleapis.com/acme-design/mockups.pdf

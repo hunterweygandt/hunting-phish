@@ -7,6 +7,7 @@ pull the sender info and the authentication results out of a raw .eml file.
 import email
 import re
 from email import policy
+from parsers.lookalike import has_homoglyphs, lookalike_brand, name_domain_mismatch
 
 from parsers.tld import extract as _tld
 
@@ -60,7 +61,26 @@ def analyze_headers(msg):
         "dkim_fail": False,
         "dmarc_fail": False,
         "urgency": False,
+        "homoglyph_sender": False,
+        "lookalike_domain": False,
+        "sender_name_mismatch": False,
     }
+
+    # sender display name built from lookalike Unicode characters
+    if has_homoglyphs(from_hdr):
+        signals["homoglyph_sender"] = True
+        flags.append("Homoglyph/Unicode trickery in sender name")
+
+    # sender domain impersonating a known brand
+    brand = lookalike_brand(from_hdr, from_domain)
+    if brand:
+        signals["lookalike_domain"] = True
+        flags.append(f"Sender domain impersonates '{brand}'")
+
+    # display name claims an org the domain doesn't back up
+    if name_domain_mismatch(from_hdr):
+        signals["sender_name_mismatch"] = True
+        flags.append("Display name claims an organization the domain doesn't match")
 
     # the visible From domain doesn't match the envelope sender
     if from_domain and return_domain and from_domain != return_domain:

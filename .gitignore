@@ -4,8 +4,12 @@ config.ini
 # --- python environment & cache ---
 venv/
 __pycache__/
+.pytest_cache/
 *.pyc
 *.pyo
+
+#--- testing tool against real emails ---
+samples/testset/
 
 # --- macOS cruft ---
 .DS_Store

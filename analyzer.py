@@ -4,7 +4,8 @@ import sys
 from parsers.headers import analyze_headers, load_email
 from parsers.urls import analyze_urls
 from parsers.attachments import analyze_attachments
-from parsers.score import score_email, verdict
+from parsers.hosting import is_abused_host
+from parsers.score import score_email, verdict, assemble_signals
 from parsers.enrich import (
     NEW_DOMAIN_DAYS,
     is_new_domain,
@@ -62,16 +63,9 @@ def print_report(header_info, url_info, attachment_info):
 
     # --- enrichment ---------------------------------------
     print("\n[ ENRICHMENT ]")
-    # start collecting scoring signals: header signals + enrichment + attachments
-    signals = dict(header_info["signals"])
-    signals.update({
-        "new_domain": False,
-        "vt_domain_flagged": False,
-        "ip_abuse": False,
-        "urlscan_malicious": False,
-        "dangerous_attachment": False,
-        "attachment_vt_flagged": False,
-    })
+    # collect ONLY the network-derived results here; the full signal assembly
+    # (and the trusted-host / attachment logic) happens once in assemble_signals
+    enrichment = {}
     if not VT_API_KEY:
         print("  (note: virustotal key not set - skipping VirusTotal lookups)")
     if not ABUSEIPDB_API_KEY:
@@ -87,12 +81,17 @@ def print_report(header_info, url_info, attachment_info):
         # header line for this URL
         print(f"  {u['defanged']}")
 
+        # observation note (the SCORING of this happens in assemble_signals)
+        if is_abused_host(domain):
+            print(f"      note: hosted on trusted service ({domain}) - "
+                  f"payload may be smuggled on legit infrastructure")
+
         us = urlscan_lookup(url)
         if us is not None:
             v = us["verdict"]
             if v and v["malicious"]:
                 print(f"      (!) URLSCAN flagged malicious (score {v['score']})")
-                signals["urlscan_malicious"] = True
+                enrichment["urlscan_malicious"] = True
             if us["result_link"]:
                 print(f"      urlscan: {us['result_link']}")
 
@@ -110,7 +109,7 @@ def print_report(header_info, url_info, attachment_info):
                     if is_new_domain(age):
                         print(f"      (!) NEW DOMAIN - registered within "
                               f"{NEW_DOMAIN_DAYS} days")
-                        signals["new_domain"] = True
+                        enrichment["new_domain"] = True
 
                 vt = virustotal_domain(domain)
                 if vt is not None:
@@ -119,7 +118,7 @@ def print_report(header_info, url_info, attachment_info):
                           f"({vt['harmless']} harmless)")
                     if vt["malicious"] > 0 or vt["suspicious"] > 0:
                         print(f"      (!) FLAGGED BY VIRUSTOTAL")
-                        signals["vt_domain_flagged"] = True
+                        enrichment["vt_domain_flagged"] = True
                     print(f"      report: {vt_domain_link(domain)}")
 
             elif ip:
@@ -132,7 +131,7 @@ def print_report(header_info, url_info, attachment_info):
                           f"{rep['total_reports']} reports  ({loc}, {isp})")
                     if rep["abuse_score"] > 0:
                         print(f"      (!) IP REPORTED FOR ABUSE")
-                        signals["ip_abuse"] = True
+                        enrichment["ip_abuse"] = True
                 print(f"      report: {abuseipdb_link(ip)}")
 
     if not url_info:
@@ -158,19 +157,20 @@ def print_report(header_info, url_info, attachment_info):
         if a["type_mismatch"]:
             print(f"      (!) TYPE MISMATCH - claims {a['extension']} "
                   f"but is actually executable")
-        if a["high_risk"] or a["double_extension"] or a["type_mismatch"]:
-            signals["dangerous_attachment"] = True
 
         vth = virustotal_hash(a["sha256"])
         if vth is not None:
             print(f"      VirusTotal: {vth['malicious']} malicious, "
                   f"{vth['suspicious']} suspicious")
             if vth["malicious"] > 0 or vth["suspicious"] > 0:
-                signals["attachment_vt_flagged"] = True
+                enrichment["attachment_vt_flagged"] = True
                 print(f"      (!) FLAGGED BY VIRUSTOTAL")
         print(f"      report: {vt_file_link(a['sha256'])}")
 
     # --- verdict ---------------------------------------------------
+    # one shared assembly step - the SAME function the tests call, so the
+    # report and the test suite can never disagree about a score.
+    signals = assemble_signals(header_info, url_info, attachment_info, enrichment)
     total, reasons = score_email(signals)
     print(f"\n[ VERDICT ]  {verdict(total)}  (risk score {total})")
     if reasons:

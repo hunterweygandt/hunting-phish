@@ -1,0 +1,13 @@
+From: "Account Notification" <noreply@x-05qv3fh2.firebaseapp.com>
+Return-Path: <noreply@x-05qv3fh2.firebaseapp.com>
+To: <recipient@example.com>
+Subject: Sign in to confirm your account - action required
+Date: Mon, 29 Jun 2026 09:00:00 -0600
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=fail
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Confirm here: https://x-05qv3fh2.firebaseapp.com/__/auth/action?apiKey=3DAIza=
+SyABC&mode=3DsignIn&continueUrl=3Dhttps%3A%2F%2Fstorage.googleapis.com%2Folii=
+iseur%2Fpage.html

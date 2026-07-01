@@ -4,7 +4,7 @@ urls.py
 
 import re
 import ipaddress
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs, unquote
 
 from parsers.tld import extract as _tld
 
@@ -58,16 +58,35 @@ def ip_of(url):
         return None
 
 
+def nested_urls(url):
+    # Pull URLs hidden inside another URL's query parameters
+    out = []
+    try:
+        query = urlparse(url).query
+    except ValueError:
+        return out
+    if not query:
+        return out
+    # parse_qs decodes each value once
+    for values in parse_qs(query).values():
+        for value in values:
+            for candidate in (value, unquote(value)):
+                for match in URL_RE.findall(candidate):
+                    out.append(match.rstrip(".,);"))
+    return out
+
+
 def analyze_urls(msg):
     body = get_body_text(msg)
     found = URL_RE.findall(body)
 
     seen = set()
     results = []
-    for url in found:
+
+    def add(url, nested=False):
         url = url.rstrip(".,);")
         if url in seen:
-            continue
+            return
         seen.add(url)
         results.append(
             {
@@ -75,6 +94,14 @@ def analyze_urls(msg):
                 "defanged": defang(url),
                 "domain": registered_domain(url),
                 "ip": ip_of(url),
+                "nested": nested,
             }
         )
+
+    for url in found:
+        add(url, nested=False)
+        # surface any URLs buried in this one's query parameters
+        for inner in nested_urls(url):
+            add(inner, nested=True)
+
     return results
