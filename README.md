@@ -131,9 +131,9 @@ python analyzer.py samples/example.eml
 ```
 
 Run with no cache option:
-'''bash
+```bash
 python analyzer.py --no-cache samples/example.eml   # bypass the lookup cache
-'''
+```
 
 
 Regenerate the synthetic test emails, then run the whole set:
