@@ -55,6 +55,10 @@ balanced rule that avoids false-flagging every Google Drive link.
 **Reputation enrichment** — domain and file reputation via VirusTotal, IP
 reputation via AbuseIPDB, live behavioral scanning via URLScan.io, and domain
 registration age via WHOIS. Each degrades gracefully if its API key is absent.
+Results are cached on disk with per-type TTLs (parsers/cache.py) so repeat runs 
+don't re-burn free-tier quota — a stale entry is treated as a miss, so the cache 
+can only skip a redundant call, never suppress a needed one. Pass --no-cache to 
+force every lookup live.
 
 **Attachments** — extracts attachments, computes SHA256, and identifies the *real*
 file type from magic bytes rather than the filename. Flags high-risk extensions,
@@ -79,6 +83,7 @@ hunting-phish/
 │   ├── hosting.py         # trusted-host abuse detection
 │   ├── attachments.py     # hashing, magic-byte typing, extension checks
 │   ├── enrich.py          # external API lookups (VT, AbuseIPDB, URLScan, WHOIS)
+│   ├── cache.py           # TTL'd on-disk cache for API lookups
 │   ├── score.py           # signal assembly + weighted verdict model
 │   ├── config.py          # loads API keys from config.ini
 │   └── tld.py             # shared offline public-suffix extractor
@@ -124,6 +129,12 @@ that lookup.
 ```bash
 python analyzer.py samples/example.eml
 ```
+
+Run with no cache option:
+'''bash
+python analyzer.py --no-cache samples/example.eml   # bypass the lookup cache
+'''
+
 
 Regenerate the synthetic test emails, then run the whole set:
 

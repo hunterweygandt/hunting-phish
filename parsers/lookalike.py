@@ -67,11 +67,18 @@ def lookalike_brand(from_hdr, registered_domain):
     # a sender actually on the brand's official domain is legitimate
     if registered_domain in OFFICIAL_DOMAINS:
         return None
-    # fold look-alike characters, then lowercase, then hunt for a brand name
+    # fold look-alike characters, lowercase, then split the domain into its
+    # labels so we match whole tokens: "secure-paypal.com" -> paypal, but
+    # "meetups.com" must NOT match "ups" and "purchases.com" must NOT match
+    # "chase". A pure-digit tail still counts ("paypal2" -> paypal).
     folded = raw_domain.translate(_CONFUSABLES).lower()
+    tokens = re.split(r"[.\-]", folded)
     for brand in BRANDS:
-        if brand in folded:
-            return brand
+        for tok in tokens:
+            if tok.startswith(brand):
+                rest = tok[len(brand):]
+                if rest == "" or rest.isdigit():
+                    return brand
     return None
 
 # Words that signal a display name is claiming to be an ORGANIZATION rather

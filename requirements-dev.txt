@@ -1,5 +1,5 @@
 #DEV requirements
-#seperated for a cleaner build structure
+#separated for a cleaner build structure
 
 -r requirements.txt
 pytest
