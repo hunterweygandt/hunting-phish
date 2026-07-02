@@ -7,6 +7,7 @@ __pycache__/
 .pytest_cache/
 *.pyc
 *.pyo
+.cache.json
 
 #--- testing tool against real emails ---
 samples/testset/

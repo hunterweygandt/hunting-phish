@@ -5,6 +5,7 @@ import requests
 import whois
 
 from parsers.config import get_api_key
+from parsers import cache
 
 # VirusTotal config. The key now comes from config.ini via the config
 # loader, not from an environment variable or (never) the source code.
@@ -35,6 +36,10 @@ def whois_age_days(domain):
     if not domain:
         return None
 
+    cached = cache.get("whois", domain)
+    if cached is not None:
+        return cached
+
     try:
         data = whois.whois(domain)
     except Exception:
@@ -53,7 +58,9 @@ def whois_age_days(domain):
     if created.tzinfo is None:
         created = created.replace(tzinfo=timezone.utc)
 
-    return (now - created).days
+    age = (now - created).days
+    cache.set("whois", domain, age)
+    return age
 
 
 def is_new_domain(age_days):
@@ -62,6 +69,10 @@ def is_new_domain(age_days):
 def virustotal_domain(domain):
     if not domain or not VT_API_KEY:
         return None
+
+    cached = cache.get("vt_domain", domain)
+    if cached is not None:
+        return cached
 
     try:
         resp = requests.get(
@@ -82,16 +93,22 @@ def virustotal_domain(domain):
     except (KeyError, ValueError, TypeError):
         return None
 
-    return {
+    result = {
         "malicious": stats.get("malicious", 0),
         "suspicious": stats.get("suspicious", 0),
         "harmless": stats.get("harmless", 0),
         "undetected": stats.get("undetected", 0),
     }
+    cache.set("vt_domain", domain, result)
+    return result
 
 def virustotal_hash(sha256):
     if not sha256 or not VT_API_KEY:
         return None
+
+    cached = cache.get("vt_hash", sha256)
+    if cached is not None:
+        return cached
 
     try:
         resp = requests.get(
@@ -110,12 +127,14 @@ def virustotal_hash(sha256):
     except (KeyError, ValueError, TypeError):
         return None
 
-    return {
+    result = {
         "malicious": stats.get("malicious", 0),
         "suspicious": stats.get("suspicious", 0),
         "harmless": stats.get("harmless", 0),
         "undetected": stats.get("undetected", 0),
     }
+    cache.set("vt_hash", sha256, result)
+    return result
 
 
 def vt_domain_link(domain):
@@ -130,6 +149,10 @@ def vt_file_link(sha256):
 def abuseipdb_check(ip):
     if not ip or not ABUSEIPDB_API_KEY:
         return None
+
+    cached = cache.get("abuseipdb", ip)
+    if cached is not None:
+        return cached
 
     try:
         resp = requests.get(
@@ -149,12 +172,14 @@ def abuseipdb_check(ip):
     except (KeyError, ValueError, TypeError):
         return None
 
-    return {
+    result = {
         "abuse_score": data.get("abuseConfidenceScore", 0),
         "total_reports": data.get("totalReports", 0),
         "country": data.get("countryCode"),
         "isp": data.get("isp"),
     }
+    cache.set("abuseipdb", ip, result)
+    return result
 
 
 def abuseipdb_link(ip):
@@ -164,6 +189,10 @@ def abuseipdb_link(ip):
 def urlscan_lookup(url):
     if not url or not URLSCAN_API_KEY:
         return None
+
+    cached = cache.get("urlscan", url)
+    if cached is not None:
+        return cached
 
     # --- step 1: submit the scan ---
     try:
@@ -208,4 +237,6 @@ def urlscan_lookup(url):
             break
         # 404 = still processing; loop and try again
 
-    return {"result_link": result_link, "verdict": verdict}
+    result = {"result_link": result_link, "verdict": verdict}
+    cache.set("urlscan", url, result)
+    return result

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import sys
 
+from parsers import cache
+
 from parsers.headers import analyze_headers, load_email
 from parsers.urls import analyze_urls
 from parsers.attachments import analyze_attachments
@@ -183,11 +185,15 @@ def print_report(header_info, url_info, attachment_info):
 
 
 def main():
-    if len(sys.argv) != 2:
-        print("usage: python analyzer.py <path-to-.eml>")
+    args = sys.argv[1:]
+    if "--no-cache" in args:
+        cache.ENABLED = False
+        args.remove("--no-cache")
+    if len(args) != 1:
+        print("usage: python analyzer.py [--no-cache] <path-to-.eml>")
         sys.exit(1)
 
-    path = sys.argv[1]
+    path = args[0]
     msg = load_email(path)
 
     header_info = analyze_headers(msg)
